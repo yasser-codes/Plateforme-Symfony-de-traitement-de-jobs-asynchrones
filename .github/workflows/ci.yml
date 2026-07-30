@@ -59,6 +59,11 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
 
+      - name: Build Symfony test container
+        run: |
+          APP_ENV=test APP_DEBUG=1 php bin/console cache:clear --env=test
+          APP_ENV=test APP_DEBUG=1 php bin/console cache:warmup --env=test
+
       - name: PHP-CS-Fixer dry-run
         run: vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
 
