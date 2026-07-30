@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+  pull_request:
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: pcov
+          extensions: amqp, intl, pdo_pgsql, redis
+          tools: composer:v2
+
+      - name: Validate Composer files
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: PHP-CS-Fixer
+        run: vendor/bin/php-cs-fixer check --config=.php-cs-fixer.dist.php --diff
+
+      - name: PHPStan level 9
+        run: |
+          APP_ENV=test APP_DEBUG=1 php bin/console cache:warmup
+          vendor/bin/phpstan analyse \
+            --configuration=phpstan.dist.neon \
+            --memory-limit=1G
+
+      - name: Rector dry-run
+        run: vendor/bin/rector process --dry-run --config=rector.php --no-parallel
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: jobs
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U app -d jobs"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd="rabbitmq-diagnostics -q ping"
+          --health-interval=5s
+          --health-timeout=10s
+          --health-retries=20
+
+    defaults:
+      run:
+        working-directory: app
+
+    env:
+      APP_ENV: test
+      APP_DEBUG: 1
+      DATABASE_URL: postgresql://app:app@127.0.0.1:5432/jobs?serverVersion=16&charset=utf8
+      REDIS_URL: redis://127.0.0.1:6379
+      MESSENGER_TRANSPORT_DSN: amqp://guest:guest@127.0.0.1:5672/%2f
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: pcov
+          extensions: amqp, intl, pdo_pgsql, redis
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare test database
+        run: |
+          php bin/console doctrine:database:create --if-not-exists --env=test
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test
+          php bin/console messenger:setup-transports --env=test
+
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+      - name: Infection unit suite
+        continue-on-error: true
+        run: |
+          vendor/bin/infection \
+            --configuration=infection.json5 \
+            --threads=1 \
+            --no-progress \
+            --test-framework-options="--testsuite Unit"
+
+  build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+      - tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build application image
+        run: docker compose build app

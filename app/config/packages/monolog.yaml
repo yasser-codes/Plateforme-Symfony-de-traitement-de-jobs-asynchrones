@@ -1,0 +1,40 @@
+monolog:
+    channels:
+        - api
+        - worker
+        - messenger
+
+    handlers:
+        main:
+            type: stream
+            path: php://stderr
+            level: info
+            formatter: monolog.formatter.json
+            channels:
+                - "!event"
+                - "!doctrine"
+                - "!deprecation"
+
+        api:
+            type: stream
+            path: "%kernel.logs_dir%/api.log"
+            level: info
+            formatter: monolog.formatter.json
+            channels:
+                - api
+
+        worker:
+            type: stream
+            path: "%kernel.logs_dir%/worker.log"
+            level: info
+            formatter: monolog.formatter.json
+            channels:
+                - worker
+
+        messenger:
+            type: stream
+            path: "%kernel.logs_dir%/messenger.log"
+            level: info
+            formatter: monolog.formatter.json
+            channels:
+                - messenger

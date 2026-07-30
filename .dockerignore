@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Fichiers locaux
+/.env
+*.log
+
+# Dépendances et fichiers temporaires Symfony
+app/vendor
+app/var/cache
+app/var/log
+
+# Variables locales susceptibles de contenir des secrets
+app/.env.local
+app/.env.*.local
+
+# Documentation et fichiers divers
+*.md
+coverage

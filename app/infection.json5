@@ -1,0 +1,35 @@
+{
+  "$schema": "vendor/infection/infection/resources/schema.json",
+
+  "source": {
+    "directories": [
+      "src"
+    ],
+    "excludes": [
+      "Kernel.php"
+    ]
+  },
+
+  "logs": {
+    "text": "var/infection/infection.log",
+    "summary": "var/infection/summary.log"
+  },
+
+  "tmpDir": "var/infection",
+
+  "phpUnit": {
+    "configDir": "."
+  },
+
+  "mutators": {
+    "@default": true
+  },
+
+  "minMsi": 60,
+  "minCoveredMsi": 70,
+
+  "testFramework": "phpunit",
+
+  "threads": 1,
+  "timeout": 180
+}

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.5/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    cacheDirectory=".phpunit.cache"
+    failOnWarning="true"
+    failOnRisky="true"
+>
+    <php>
+        <env name="APP_ENV" value="test" force="true"/>
+        <env name="APP_DEBUG" value="1" force="true"/>
+        <server
+            name="KERNEL_CLASS"
+            value="App\Kernel"
+            force="true"
+        />
+    </php>
+
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+
+        <testsuite name="Integration">
+            <directory>tests/Integration/Command</directory>
+            <directory>tests/Integration/Repository</directory>
+        </testsuite>
+
+        <testsuite name="Functional">
+            <directory>tests/Functional</directory>
+        </testsuite>
+
+        <testsuite name="E2E">
+            <directory>tests/E2E</directory>
+        </testsuite>
+
+        <testsuite name="AMQP">
+            <directory>tests/Integration/Messenger</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </source>
+</phpunit>

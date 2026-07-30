@@ -1,0 +1,73 @@
+framework:
+    messenger:
+        failure_transport: failed_storage
+
+        transports:
+            async_normal:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+
+                options:
+                    exchange:
+                        name: jobs.exchange
+                        type: direct
+                        default_publish_routing_key: normal
+
+                    queues:
+                        jobs.normal:
+                            binding_keys:
+                                - normal
+
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 10000
+                    jitter: 0.1
+
+            async_priority:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+
+                options:
+                    exchange:
+                        name: jobs.exchange
+                        type: direct
+                        default_publish_routing_key: priority
+
+                    queues:
+                        jobs.priority:
+                            binding_keys:
+                                - priority
+
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 10000
+                    jitter: 0.1
+
+            # Stockage du message original définitivement échoué.
+            failed_storage:
+                dsn: 'doctrine://default?queue_name=failed_jobs'
+
+                retry_strategy:
+                    max_retries: 0
+
+            # Queue métier consommée par worker-dead-letter.
+            async_dead_letter:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+
+                options:
+                    exchange:
+                        name: jobs.dead_letter.fanout
+                        type: fanout
+
+                    queues:
+                        jobs.dead_letter: ~
+
+                retry_strategy:
+                    max_retries: 0
+
+        routing:
+            App\Message\ProcessJobMessage: async_normal
+            App\Message\PriorityJobMessage: async_priority
+            App\Message\DeadLetterMessage: async_dead_letter
