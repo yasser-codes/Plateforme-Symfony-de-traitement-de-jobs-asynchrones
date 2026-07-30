@@ -261,6 +261,5 @@ Les éléments suivants ne doivent jamais être versionnés :
 
 ## 13. Auteur
 
-**Fatima Zahrae**  
-Module : Technologie Web avancée  
-Année universitaire : 2025-2026
+**EL KHANCHOUF YASSER**  
+
