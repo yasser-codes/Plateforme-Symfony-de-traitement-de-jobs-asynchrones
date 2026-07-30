@@ -83,15 +83,54 @@ jobs:
 
       - name: Prepare environment file
         run: |
-          if [ ! -f .env ]; then
+          if [ -f .env.example ]; then
             cp .env.example .env
+          else
+            touch .env
           fi
+
+          if [ -f app/.env.example ]; then
+            cp app/.env.example app/.env
+          else
+            touch app/.env
+          fi
+
+          cat >> .env <<'EOF'
+          APP_ENV=test
+          APP_DEBUG=1
+          APP_SECRET=github-actions-test-secret
+          DEFAULT_URI=http://localhost
+          DATABASE_URL=postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8
+          REDIS_URL=redis://redis:6379
+          MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f
+          EOF
+
+          cat >> app/.env <<'EOF'
+          APP_ENV=test
+          APP_DEBUG=1
+          APP_SECRET=github-actions-test-secret
+          DEFAULT_URI=http://localhost
+          DATABASE_URL=postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8
+          REDIS_URL=redis://redis:6379
+          MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f
+          EOF
 
       - name: Build Docker images
         run: docker compose build
 
       - name: Start complete platform
-        run: docker compose up -d
+        run: |
+          if ! docker compose up -d; then
+            echo "Docker Compose failed."
+            docker compose ps
+            echo "========== APP LOGS =========="
+            docker compose logs --no-color --tail=300 app
+            echo "========== DATABASE LOGS =========="
+            docker compose logs --no-color --tail=100 db
+            echo "========== RABBITMQ LOGS =========="
+            docker compose logs --no-color --tail=100 rabbitmq
+            exit 1
+          fi
 
       - name: Display containers
         run: docker compose ps
