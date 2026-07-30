@@ -121,48 +121,28 @@ jobs:
       - name: Start complete platform
         run: |
           if ! docker compose up -d; then
-            echo "Docker Compose failed."
             docker compose ps
-            echo "========== APP LOGS =========="
             docker compose logs --no-color --tail=300 app
-            echo "========== DATABASE LOGS =========="
-            docker compose logs --no-color --tail=100 db
-            echo "========== RABBITMQ LOGS =========="
-            docker compose logs --no-color --tail=100 rabbitmq
             exit 1
           fi
 
-      - name: Display containers
-        run: docker compose ps
-
-      - name: Wait for application
+      - name: Prepare test database
         run: |
-          echo "Waiting for the application..."
+          docker compose exec -T app \
+            php bin/console doctrine:database:create --if-not-exists --env=test
 
-          for i in {1..30}; do
-            if curl --fail --silent http://localhost/health > /dev/null; then
-              echo "Application is ready."
-              exit 0
-            fi
-
-            echo "Attempt $i/30..."
-            sleep 5
-          done
-
-          echo "Application did not become ready."
-          docker compose ps
-          docker compose logs
-          exit 1
+          docker compose exec -T app \
+            php bin/console doctrine:migrations:migrate --no-interaction --env=test
 
       - name: Validate database schema
         run: |
           docker compose exec -T app \
-            php bin/console doctrine:schema:validate
+            php bin/console doctrine:schema:validate --env=test
 
       - name: Setup Messenger transports
         run: |
           docker compose exec -T app \
-            php bin/console messenger:setup-transports
+            php bin/console messenger:setup-transports --env=test
 
       - name: Run PHPUnit
         run: |
