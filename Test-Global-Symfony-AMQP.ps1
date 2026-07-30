@@ -192,8 +192,10 @@ Invoke-ValidationStep "Suite PHPUnit globale" { docker compose exec -T app vendo
 
 Write-Section "6. QUALITE DU CODE"
 Invoke-ValidationStep "PHPStan niveau 9" { docker compose exec -T app vendor/bin/phpstan analyse --configuration=phpstan.dist.neon --memory-limit=1G }
-Invoke-ValidationStep "PHP-CS-Fixer (check)" { docker compose exec -T app vendor/bin/php-cs-fixer check --config=.php-cs-fixer.dist.php --diff }
-Invoke-ValidationStep "Rector (dry-run)" { docker compose exec -T app vendor/bin/rector process --dry-run --config=rector.php --no-parallel }
+Invoke-ValidationStep "PHP-CS-Fixer (dry-run)" {
+    docker compose exec -T app vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
+}
+Invoke-ValidationStep "Rector (dry-run)" { docker compose exec -T app vendor/bin/rector process --dry-run --config=rector.php }
 if ($RunInfection) {
     Invoke-ValidationStep "Infection (bonus)" { docker compose exec -T app vendor/bin/infection --configuration=infection.json5 --threads=1 --no-progress --test-framework-options="--testsuite Unit" } -Optional
 }
