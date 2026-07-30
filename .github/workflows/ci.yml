@@ -18,6 +18,14 @@ jobs:
       run:
         working-directory: app
 
+    env:
+      APP_ENV: test
+      APP_DEBUG: 1
+      APP_SECRET: github-actions-test-secret
+      DATABASE_URL: postgresql://app:app@127.0.0.1:5432/jobs?serverVersion=16&charset=utf8
+      REDIS_URL: redis://127.0.0.1:6379
+      MESSENGER_TRANSPORT_DSN: amqp://guest:guest@127.0.0.1:5672/%2f
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,6 +38,21 @@ jobs:
           extensions: amqp, intl, pdo_pgsql, redis
           tools: composer:v2
 
+      - name: Prepare CI environment
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            cat > .env <<'EOF'
+          APP_ENV=test
+          APP_DEBUG=1
+          APP_SECRET=github-actions-test-secret
+          DATABASE_URL="postgresql://app:app@127.0.0.1:5432/jobs?serverVersion=16&charset=utf8"
+          REDIS_URL="redis://127.0.0.1:6379"
+          MESSENGER_TRANSPORT_DSN="amqp://guest:guest@127.0.0.1:5672/%2f"
+          EOF
+          fi
+
       - name: Validate Composer files
         run: composer validate --strict
 
@@ -37,11 +60,7 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: PHP-CS-Fixer dry-run
-        run: |
-          vendor/bin/php-cs-fixer fix \
-            --dry-run \
-            --diff \
-            --config=.php-cs-fixer.dist.php
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
 
       - name: PHPStan level 9
         run: |
@@ -50,10 +69,7 @@ jobs:
             --memory-limit=1G
 
       - name: Rector dry-run
-        run: |
-          vendor/bin/rector process \
-            --dry-run \
-            --config=rector.php
+        run: vendor/bin/rector process --dry-run --config=rector.php
 
   tests:
     name: Tests
