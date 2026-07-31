@@ -84,14 +84,19 @@ jobs:
       - name: Prepare environment file
         run: |
           cat > .env <<'EOF'
+          POSTGRES_DB=jobs
+          POSTGRES_USER=app
+          POSTGRES_PASSWORD=app
+
           APP_ENV=test
           APP_DEBUG=1
           APP_SECRET=github-actions-test-secret
           DEFAULT_URI=http://localhost
           API_CACHE_TTL=300
-          DATABASE_URL=postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8
-          REDIS_URL=redis://redis:6379
-          MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f
+
+          DATABASE_URL="postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8"
+          REDIS_URL="redis://redis:6379"
+          MESSENGER_TRANSPORT_DSN="amqp://guest:guest@rabbitmq:5672/%2f"
           EOF
 
           cat > app/.env <<'EOF'
@@ -100,10 +105,18 @@ jobs:
           APP_SECRET=github-actions-test-secret
           DEFAULT_URI=http://localhost
           API_CACHE_TTL=300
-          DATABASE_URL=postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8
-          REDIS_URL=redis://redis:6379
-          MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f
+
+          DATABASE_URL="postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8"
+          REDIS_URL="redis://redis:6379"
+          MESSENGER_TRANSPORT_DSN="amqp://guest:guest@rabbitmq:5672/%2f"
           EOF
+
+      - name: Validate Docker environment
+        run: |
+          docker compose config --quiet
+          grep -q '^POSTGRES_DB=jobs$' .env
+          grep -q '^POSTGRES_USER=app$' .env
+          grep -q '^POSTGRES_PASSWORD=app$' .env
 
       - name: Build Docker images
         run: docker compose build
