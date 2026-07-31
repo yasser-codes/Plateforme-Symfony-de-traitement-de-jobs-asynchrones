@@ -88,6 +88,10 @@ jobs:
           POSTGRES_USER=app
           POSTGRES_PASSWORD=app
 
+          RABBITMQ_DEFAULT_USER=app
+          RABBITMQ_DEFAULT_PASS=app
+          RABBITMQ_DEFAULT_VHOST=/
+
           APP_ENV=test
           APP_DEBUG=1
           APP_SECRET=github-actions-test-secret
@@ -96,7 +100,7 @@ jobs:
 
           DATABASE_URL="postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8"
           REDIS_URL="redis://redis:6379"
-          MESSENGER_TRANSPORT_DSN="amqp://guest:guest@rabbitmq:5672/%2f"
+          MESSENGER_TRANSPORT_DSN="amqp://app:app@rabbitmq:5672/%2f"
           EOF
 
           cat > app/.env <<'EOF'
@@ -108,7 +112,7 @@ jobs:
 
           DATABASE_URL="postgresql://app:app@db:5432/jobs?serverVersion=16&charset=utf8"
           REDIS_URL="redis://redis:6379"
-          MESSENGER_TRANSPORT_DSN="amqp://guest:guest@rabbitmq:5672/%2f"
+          MESSENGER_TRANSPORT_DSN="amqp://app:app@rabbitmq:5672/%2f"
           EOF
 
       - name: Validate Docker environment
@@ -147,6 +151,12 @@ jobs:
         run: |
           docker compose exec -T app \
             php bin/console doctrine:schema:validate --env=test
+
+      - name: Check RabbitMQ connection
+        run: |
+          docker compose exec -T rabbitmq rabbitmq-diagnostics -q ping
+          docker compose exec -T rabbitmq rabbitmqctl list_users
+          docker compose exec -T rabbitmq rabbitmqctl list_vhosts
 
       - name: Setup Messenger transports
         run: |
